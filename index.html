@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Danganronpa: Despair Overflow</title>
+  <style>
+        body { font-family: 'Courier New', Courier, monospace; background-color: #000; color: #eee; text-align: center; padding: 20px; padding-bottom: 150px; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        .wrapper { display: flex; width: 100%; height: 100%; }
+        .main-content { flex: 1; overflow-y: auto; padding: 20px; }
+        
+        /* Sidebar Status */
+        #sidebar { width: 280px; background-color: #111; border-left: 3px solid #6c5ce7; padding: 20px; display: flex; flex-direction: column; gap: 5px; overflow-y: auto; text-align: left; }
+        .st-name { font-size: 13px; padding: 2px 5px; transition: 0.3s; border-left: 3px solid transparent; }
+        .st-crossed { text-decoration: line-through; opacity: 0.4; color: #d63031 !important; border-left-color: transparent !important; }
+        
+        /* Side Colors */
+        .side-pro { color: #00b894 !important; border-left-color: #00b894 !important; font-weight: bold; }
+        .side-sup { color: #6c5ce7 !important; border-left-color: #6c5ce7 !important; font-weight: bold; }
+        .side-ant { color: #d63031 !important; border-left-color: #d63031 !important; font-weight: bold; }
+        .mastermind-side { color: #ff7675 !important; font-weight: bold; border-left-color: #d63031 !important; }
+
+        .container { max-width: 800px; margin: 0 auto; background-color: #111; border: 3px solid #6c5ce7; border-radius: 10px; padding: 20px; box-shadow: 0 0 15px #6c5ce7; }
+        h1 { color: #6c5ce7; text-shadow: 2px 2px 4px #000; }
+        #controls { position: fixed; bottom: 0; left: 0; width: 100%; padding: 15px 0; background-color: #111; border-top: 3px solid #6c5ce7; display: flex; justify-content: center; gap: 8px; z-index: 1000; flex-wrap: wrap; }
+        button { padding: 10px 20px; font-size: 14px; cursor: pointer; background-color: #6c5ce7; color: white; border: none; border-radius: 5px; font-weight: bold; }
+        button:hover { background-color: #5d4cd6; }
+        .btn-nexus { background-color: #e84393; border: 1px solid white; }
+        .btn-survivor { background-color: #0984e3; }
+        input { padding: 8px; background: #222; border: 1px solid #6c5ce7; color: #fff; border-radius: 5px; width: 60px; text-align: center; }
+        #output { text-align: left; margin-top: 20px; padding: 15px; background-color: #1c1c1c; border: 1px solid #444; max-height: 550px; overflow-y: auto; display: flex; flex-direction: column; }
+        .event-text { margin-bottom: 8px; animation: slideDown 0.3s ease-out forwards; border-left: 4px solid #444; padding-left: 10px; white-space: pre-wrap; font-weight: bold; }
+
+        .nx-chap { color: #e84393; text-decoration: underline; margin-top: 15px; border-left: none; }
+        .nx-victim { color: #ffc107; border-left-color: #ffc107; }
+        .nx-killer { color: #e17055; border-left-color: #e17055; }
+        .role-pro { color: #00b894; border-left-color: #00b894; }
+        .role-sup { color: #6c5ce7; border-left-color: #6c5ce7; }
+        .role-ant { color: #d63031; border-left-color: #d63031; }
+        .picked { color: #ffc107; border-left-color: #ffc107; }
+        .survivor-style { color: #74b9ff !important; border-left-color: #0984e3 !important; }
+        .mastermind-style { color: #ff7675 !important; border-left-color: #d63031 !important; font-size: 1.2em; text-transform: uppercase; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="https://cdn.tailwindcss.com/3.4.17" type="text/javascript"></script>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+  <script src="/_sdk/element_sdk.js" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="wrapper">
+   <div class="main-content">
+    <div class="container">
+     <h1>DESPAIR OVERFLOW</h1>
+     <div id="main-menu">
+      <h3>GAME SETUP</h3>
+      <p>Select Students (3-30): <input type="number" id="total-participants" value="16" min="3" max="30"></p><button onclick="startMode('standard')">STANDARD MODE</button> <button onclick="startMode('nexus')" class="btn-nexus">NEXUS ACCORD MODE</button>
+     </div>
+     <div id="role-area" style="display:none; margin-top: 20px;"><button onclick="drawRoles()" id="role-btn">DETERMINE ROLES</button>
+     </div>
+     <div id="batch-area" style="display:none; margin-top: 20px;"><label>Batch Size:</label> <input type="number" id="batch-count" value="1" min="1"> <button onclick="batchDraw()">DRAW BATCH</button>
+     </div>
+     <div id="output"></div>
+    </div>
+   </div>
+   <div id="sidebar">
+    <div style="color: #6c5ce7; font-weight: bold; border-bottom: 1px solid #6c5ce7; margin-bottom: 10px;">
+     ROSTER
+    </div>
+    <div id="side-list"></div>
+   </div>
+  </div>
+  <div id="controls" style="display:none;"><button onclick="revealNextStandard()" id="std-reveal-btn" style="display:none;">REVEAL STUDENT</button> <button onclick="setSurvivorWall()" id="std-surv-btn" class="btn-survivor" style="display:none;">SURVIVOR WALL</button> <button onclick="drawNexusEvent()" id="nx-draw-btn" class="btn-nexus" style="display:none;">NEXT EVENT</button> <button onclick="location.reload()">RESET SYSTEM</button>
+  </div>
+  <script>
+    const students = ["Dread/concord (Ultimate Werewolf)", "Tengu (Ultimate Graffiti Artist)", "Sixer (Ultimate Paranormal Investigator)", "Motor (Ultimate Drag Racer)", "Warren & Wax Monster (Ultimate Candle Maker)", "Mirio (Ultimate Grave Robber)", "Roman (Ultimate Train Conductor)", "Rocky (Ultimate Thief)", "Hideki (Ultimate Swordsman)", "Gunther (Ultimate Hacker)", "Mako (Ultimate Ship Captain)", "Astro (Ultimate Astronaut)", "Solar (Ultimate Guitarist)", "Lunar (Ultimate Bassist)", "Comet (Ultimate Space Pilot)", "Ruster (Ultimate Demolitionist)", "Cyrus (Ultimate Engineer)", "Tracker (Ultimate Cartographer)", "Cujo (Ultimate Baseball Star)", "Riot (Ultimate Prisoner)", "Wire (Ultimate War Criminal)", "David (Ultimate Werewolf Hunter)", "Toby (Ultimate Prison Guard)", "Rocket (Ultimate Explosives Expert)", "Kaine (Ultimate Butcher)", "Desmond (Ultimate Snowboarder)", "Crypt (Ultimate Executioner)", "Bruiser (Ultimate Boxer)", "Crasher E. badger (Ultimate Bartender)", "Kyros (Ultimate Combat initiator)"];
+    
+    let pool = [], eventQueue = [], isSurvivorMode = false, selectedMode = "", sAntag, sSupport, f1, f2;
+
+    function addEvent(text, className) {
+        const out = document.getElementById('output');
+        const div = document.createElement('div');
+        div.className = 'event-text ' + className;
+        div.innerHTML = text;
+        out.appendChild(div);
+        out.scrollTop = out.scrollHeight;
+    }
+
+    function pop() { return pool.splice(Math.floor(Math.random() * pool.length), 1)[0]; }
+
+    function popFromArray(arr) { return arr.splice(Math.floor(Math.random() * arr.length), 1)[0]; }
+
+    function getID(name) {
+        if (!name) return "";
+        return "side-" + name.toString().split(' (')[0].replace(/\s+/g, '-');
+    }
+
+    function markSide(name, type) {
+        const el = document.getElementById(getID(name));
+        if (!el) return;
+        if (type === 'cross') {
+            const isP = el.classList.contains('side-pro');
+            const isS = el.classList.contains('side-sup');
+            const isA = el.classList.contains('side-ant');
+            el.classList.add('st-crossed');
+            el.classList.remove('side-pro', 'side-sup', 'side-ant');
+            if (isP) pickNew('side-pro');
+            if (isS) pickNew('side-sup');
+            if (isA) pickNew('side-ant');
+        }
+        else if (type === 'master') el.classList.add('mastermind-side');
+        else el.classList.add(type);
+    }
+
+    function pickNew(cls) {
+        const left = document.querySelectorAll('.st-name:not(.st-crossed):not(.side-pro):not(.side-sup):not(.side-ant)');
+        if (left.length > 0) left[Math.floor(Math.random() * left.length)].classList.add(cls);
+    }
+
+    function startMode(choice) {
+        selectedMode = choice;
+        const count = (choice === 'nexus') ? 30 : parseInt(document.getElementById('total-participants').value);
+        pool = [...students].sort(() => Math.random() - 0.5).slice(0, count);
+        
+        document.getElementById('main-menu').style.display = 'none';
+        document.getElementById('role-area').style.display = 'block';
+        
+        let sideNames = [...pool].sort(() => Math.random() - 0.5);
+        document.getElementById('side-list').innerHTML = '';
+        sideNames.forEach((s, idx) => {
+            const div = document.createElement('div');
+            div.className = 'st-name';
+            div.id = getID(s);
+            div.innerText = (idx + 1) + '. ' + s.split(' (')[0];
+            document.getElementById('side-list').appendChild(div);
+        });
+
+        addEvent(`--- ROUND POOL (${count}) ---`, "nx-chap");
+        let displayPool = [...pool].sort(() => Math.random() - 0.5);
+        displayPool.forEach((s, idx) => {
+            addEvent(`${idx + 1}. ${s}`, "event-text");
+        });
+    }
+
+    function drawRoles() {
+        document.getElementById('role-area').style.display = 'none';
+        document.getElementById('controls').style.display = 'flex';
+        
+        if (selectedMode === 'standard') {
+            document.getElementById('batch-area').style.display = 'block';
+            document.getElementById('std-reveal-btn').style.display = 'inline-block';
+            document.getElementById('std-surv-btn').style.display = 'inline-block';
+            let r = [...pool].sort(() => Math.random() - 0.5);
+            addEvent("--- STORY ROLES ---", "nx-chap");
+            addEvent(`PROTAGONIST: ${r[0]}`, "role-pro"); markSide(r[0], 'side-pro');
+            addEvent(`SUPPORT: ${r[1]}`, "role-sup"); markSide(r[1], 'side-sup');
+            addEvent(`ANTAGONIST: ${r[2]}`, "role-ant"); markSide(r[2], 'side-ant');
+        } else {
+            document.getElementById('nx-draw-btn').style.display = 'inline-block';
+            let tempPool = [...pool];
+            sAntag = popFromArray(tempPool); 
+            sSupport = popFromArray(tempPool); 
+            f1 = popFromArray(tempPool); 
+            f2 = popFromArray(tempPool);
+            let nxPro = pool[Math.floor(Math.random()*pool.length)];
+
+            addEvent("--- NEXUS ROLES ---", "nx-chap");
+            addEvent(`PROTAG: ${nxPro}`, "role-pro"); markSide(nxPro, 'side-pro');
+            addEvent(`STORY SUPPORT: ${sSupport}`, "role-sup"); markSide(sSupport, 'side-sup');
+            addEvent(`MAIN ANTAGONIST: ${sAntag}`, "role-ant"); markSide(sAntag, 'side-ant');
+
+            eventQueue = [
+                {t: "**{CHAPTER 1}**", c: "nx-chap"}, {t: `VICTIM: ${pop()}`, c: "nx-victim"}, {t: `KILLER: ${pop()}`, c: "nx-killer"},
+                {t: "**{CHAPTER 2}**", c: "nx-chap"}, {t: `VICTIM: ${pop()}`, c: "nx-victim"}, {t: `KILLER: ${pop()}`, c: "nx-killer"},
+                {t: "**{CHAPTER 3}**", c: "nx-chap"}, {t: `VICTIM: ${pop()}`, c: "nx-victim"}, {t: `KILLER: ${pop()}`, c: "nx-killer"},
+                {t: "**{CHAPTER 4}**", c: "nx-chap"}, {t: `VICTIM: ${pop()}`, c: "nx-victim"}, {t: `VICTIM: ${pop()}`, c: "nx-victim"}, {t: `KILLER: ${pop()}`, c: "nx-killer"},
+                {t: "**{CHAPTER 5}**", c: "nx-chap"}, {t: `VICTIM: ${pop()}`, c: "nx-victim"}, {t: `KILLER: ${pop()}`, c: "nx-killer"},
+                {t: "**{CHAPTER 6}**", c: "nx-chap"}, {t: `VICTIM: ${pop()} (Self-Sacrifice)`, c: "nx-victim"},
+                {t: "**{CHAPTER 7}**", c: "nx-chap"}, {t: `VICTIM: ${pop()}`, c: "nx-victim"}, {t: `KILLER: ${pop()}`, c: "nx-killer"},
+                {t: "**{CHAPTER 8}**", c: "nx-chap"}, {t: `VICTIM: ${pop()} (Family Grief)`, c: "nx-victim"}, {t: `KILLER: ${pop()}`, c: "nx-killer"},
+                {t: "**{CHAPTER 9}**", c: "nx-chap"}, {t: `VICTIM: ${pop()}`, c: "nx-victim"}, {t: `KILLER: ${pop()}`, c: "nx-killer"},
+                {t: "**{CHAPTER 10}**", c: "nx-chap"}, {t: `VICTIM: ${pop()}`, c: "nx-victim"}, {t: `KILLER: ${pop()}`, c: "nx-killer"},
+                {t: "**{CHAPTER 11}**", c: "nx-chap"}, {t: `VICTIM: ${pop()}`, c: "nx-victim"}, {t: `VICTIM: ${pop()}`, c: "nx-victim"}, {t: `KILLER: ${pop()}`, c: "nx-killer"},
+                {t: "**{CHAPTER 12}**", c: "nx-chap"}, {t: `VICTIM: ${pop()}`, c: "nx-victim"}, {t: `KILLER: ${sSupport} (Support Fall)`, c: "nx-killer"},
+                {t: "**{CHAPTER 13}**", c: "nx-chap"}, {t: `VICTIM: ${pop()}`, c: "nx-victim"}, {t: `VICTIM: ${pop()}`, c: "nx-victim"}, {t: `KILLER: ${sAntag} (Antag Defeat)`, c: "nx-killer"},
+                {t: "**THE END**", c: "nx-chap"}, {t: `SURVIVOR: ${f1}`, c: "nx-survivor"}, {t: `SURVIVOR: ${f2}`, c: "nx-survivor"},
+                {t: "**{EPILOGUE}**", c: "nx-chap"}, {t: `${f1} and ${f2} vacation ending twist!`, c: "nx-epilogue"}
+            ];
+        }
+    }
+
+    function revealNextStandard() {
+        if (pool.length === 0) return;
+        let s = pool.pop();
+        if (pool.length === 0) {
+            addEvent("=== THE MASTERMIND ===", "wall-mastermind");
+            addEvent(`MASTERMIND: ${s}`, "mastermind-style");
+            markSide(s, 'master');
+        } else {
+            addEvent(`REVEALED: ${s}`, isSurvivorMode ? "picked survivor-style" : "picked");
+            if (!isSurvivorMode) markSide(s, 'cross');
+        }
+    }
+
+    function batchDraw() {
+        const amt = parseInt(document.getElementById('batch-count').value);
+        for(let i=0; i<Math.min(amt, pool.length); i++) revealNextStandard();
+    }
+
+    function setSurvivorWall() {
+        isSurvivorMode = true;
+        addEvent("=== SURVIVORS REMAINING ===", "nx-survivor");
+    }
+
+    function drawNexusEvent() {
+        if (eventQueue.length > 0) {
+            const e = eventQueue.shift();
+            addEvent(e.t, e.c);
+            if (e.t.includes(': ')) {
+                let charName = e.t.split(': ')[1].split(' (')[0];
+                markSide(charName, 'cross');
+            }
+        }
+    }
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9da443fb27cfa554',t:'MTc3MzE2NjExNS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
